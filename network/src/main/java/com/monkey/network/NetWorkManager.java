@@ -2,6 +2,7 @@ package com.monkey.network;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.monkey.network.config.okhttp.DefaultOkConfig;
 import com.monkey.network.config.okhttp.OkConfig;
@@ -11,6 +12,7 @@ import com.monkey.network.config.ssl.TrustAllCerts;
 import com.monkey.network.config.ssl.TrustDoubleCerts;
 import com.monkey.network.config.ssl.TrustHostnameVerifier;
 import com.monkey.network.config.ssl.TrustSingleCerts;
+import com.omyrobin.network.BuildConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import javax.net.ssl.SSLContext;
 import okhttp3.Cache;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -33,6 +36,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * @CreateDate: 2020-04-26 10:47
  */
 public class NetWorkManager {
+
+    private static final String TAG = NetWorkManager.class.getSimpleName();
 
     private static volatile NetWorkManager netWorkManager;
 
@@ -93,7 +98,7 @@ public class NetWorkManager {
         }
 
         if (!TextUtils.isEmpty(okConfig.getCacheDirPath())) {
-            File cacheFile = new File(okConfig.getCacheDirPath());
+            File cacheFile = new File(context.getExternalCacheDir() + okConfig.getCacheDirPath());
             if (okConfig.getCacheSize() > 1024 * 1024) {
                 okBuilder.cache(new Cache(cacheFile, okConfig.getCacheSize()));
             } else {
@@ -119,6 +124,16 @@ public class NetWorkManager {
                 }
             }
         }
+
+        //添加网络日志
+        HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(new HttpLoggingInterceptor.Logger() {
+            @Override
+            public void log(String message) {
+                Log.d(TAG,message);
+            }
+        });
+        logInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+        okBuilder.addNetworkInterceptor(logInterceptor);
 
         if(okConfig.getSSLState() != null){
             //支持信任所有证书https
